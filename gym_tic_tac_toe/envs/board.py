@@ -22,13 +22,14 @@ class Board:
         self._size = size
         # board is represented by an array of values: 0 for empty, 1 for crosses and -1 for noughts
         self._board = np.zeros((size, size), dtype='int')
+        self.game_ended = False
 
     def get_legal_moves(self):
         # create action mask
         result = np.ones((self._size, self._size), dtype='int')
         return result - np.abs(self._board)
 
-    def game_ended(self, move):
+    def check_for_end_of_game(self, move):
         # we only need to check places impacted by the move
 
         # check if board is full
@@ -52,13 +53,16 @@ class Board:
         return False
 
     def add_move(self, move):
+        # check for game ended
+        if self.game_ended:
+            return False, True
         # ensure move legality
         if self._board[move[0], move[1]] != 0:
             raise ValueError('Illegal move made!')
         # change board condition
         self._board[move[0], move[1]] = move[2]
-        game_ended = self.game_ended(move)
-        return game_ended and np.sum(np.abs(self._board)) != self._size * self._size, game_ended
+        self.game_ended = self.check_for_end_of_game(move)
+        return self.game_ended and np.sum(np.abs(self._board)) != self._size * self._size, self.game_ended
 
     def reset(self):
         self._board = np.zeros((self._size, self._size), dtype='int')

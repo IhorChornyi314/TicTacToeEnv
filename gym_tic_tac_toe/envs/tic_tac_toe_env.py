@@ -21,6 +21,7 @@ class TTTEnv(gym.Env):
         # initialize state
         self.board = Board(board_size)
         self.current_player = 0
+        self.winning_player = -1
 
     def reset(self, *, seed=None, return_info=False, options=None):
         # reset state
@@ -34,15 +35,29 @@ class TTTEnv(gym.Env):
             print(self.board)
 
     def step(self, action):
+        reward = 0
         # pack action in a tuple
         move = int(action / self.board.size), action % self.board.size, 1 if self.current_player == 0 else -1
         # check for move legality; if not - end the game and return -1 as the reward
-        if self.board.board[move[0], move[1]] != 0:
-            return self.board.board, -1, True, self.info
+        # if the game has already ended - ignore move
+        if self.board.board[move[0], move[1]] != 0 and not self.board.game_ended:
+            return self.board.board, -10, True, self.info
         # introduce the move and check for game end
         game_won, game_ended = self.board.add_move(move)
+        # register winning player
+        if game_ended and self.winning_player == -1:
+            self.winning_player = self.current_player if game_won else -2
+        # determine the reward: 1 for player who won, -1 for player who lost, 0.5 to both in the event of the draw
+        if game_ended:
+            if self.winning_player == -2:
+                reward = 0.5
+            elif self.winning_player == self.current_player:
+                reward = 1
+            else:
+                reward = -1
+
         # change current player
         self.current_player = abs(self.current_player - 1)
-        return self.board.board, 1 if game_won else 0, game_ended, self.info
+        return self.board.board, reward, game_ended, self.info
 
 
